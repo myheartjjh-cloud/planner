@@ -1,16 +1,39 @@
-import React from 'react';
-import { Calendar, CalendarDays, PlusCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, CalendarDays, PlusCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 import { getKoreanHoliday } from '../utils/holidays';
 import './Header.css';
 
-const Header = ({ view, setView, currentDate, onPrev, onNext, onOpenModal }) => {
+const decimalToTime = (decimal) => {
+  const h = Math.floor(decimal);
+  const m = Math.round((decimal - h) * 60);
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
+const Header = ({ view, setView, currentDate, events, onPrev, onNext, onOpenModal }) => {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   const formattedDate = currentDate.toLocaleDateString('ko-KR', options);
   
   const holiday = getKoreanHoliday(currentDate);
 
-  // Mock progress
-  const progress = 65;
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayStr = format(now, 'yyyy-MM-dd');
+  const currentHourDecimal = now.getHours() + now.getMinutes() / 60;
+  
+  const todaysEvents = (events || []).filter(e => {
+    if (e.date) return e.date === todayStr;
+    return e.day === now.getDay();
+  });
+
+  const currentEvent = todaysEvents.find(e => currentHourDecimal >= e.start && currentHourDecimal < e.end);
+  const nextEvents = todaysEvents.filter(e => e.start >= currentHourDecimal).sort((a, b) => a.start - b.start);
+  const nextEvent = nextEvents.length > 0 ? nextEvents[0] : null;
 
   return (
     <header className="header glass-panel">
@@ -55,14 +78,28 @@ const Header = ({ view, setView, currentDate, onPrev, onNext, onOpenModal }) => 
           <PlusCircle size={18} /> Register
         </button>
 
-        <div className="progress-container">
-          <div className="progress-text">
-            <span>Today's Progress</span>
-            <span className="progress-percentage">{progress}%</span>
-          </div>
-          <div className="progress-bar-bg">
-            <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
-          </div>
+        <div className="current-schedule-container glass-panel">
+          {currentEvent ? (
+            <div className="current-schedule active">
+              <Clock size={14} className="icon-blink" style={{ color: currentEvent.color }} />
+              <span className="schedule-text">
+                진행중: <strong style={{ color: currentEvent.color }}>{currentEvent.title}</strong> 
+                <span className="schedule-time">({decimalToTime(currentEvent.start)} - {decimalToTime(currentEvent.end)})</span>
+              </span>
+            </div>
+          ) : nextEvent ? (
+            <div className="current-schedule next">
+              <Clock size={14} color="var(--text-secondary)" />
+              <span className="schedule-text">
+                다음: <strong>{nextEvent.title}</strong> 
+                <span className="schedule-time">({decimalToTime(nextEvent.start)} - {decimalToTime(nextEvent.end)})</span>
+              </span>
+            </div>
+          ) : (
+            <div className="current-schedule empty">
+              <span className="schedule-text">오늘 남은 일정이 없습니다 🎉</span>
+            </div>
+          )}
         </div>
       </div>
     </header>

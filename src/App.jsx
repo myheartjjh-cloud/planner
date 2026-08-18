@@ -135,6 +135,7 @@ function App() {
         view={view} 
         setView={setView} 
         currentDate={currentDate}
+        events={allEvents}
         onPrev={handlePrev}
         onNext={handleNext}
         onOpenModal={() => {

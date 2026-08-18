@@ -117,34 +117,46 @@
   transform: translateY(-1px);
 }
 
-.progress-container {
-  width: 200px;
-}
-
-.progress-text {
+.current-schedule-container {
+  min-width: 280px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+}
+
+.current-schedule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.875rem;
-  margin-bottom: var(--space-sm);
+}
+
+.schedule-text {
   font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.progress-percentage {
-  color: var(--accent-success);
+.schedule-time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  margin-left: 4px;
 }
 
-.progress-bar-bg {
-  height: 8px;
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: var(--radius-full);
-  overflow: hidden;
+.current-schedule.empty .schedule-text {
+  color: var(--text-secondary);
 }
 
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-success));
-  border-radius: var(--radius-full);
-  transition: width 1s ease-out;
+.icon-blink {
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 @media (max-width: 900px) {
@@ -157,7 +169,8 @@
     width: 100%;
     flex-wrap: wrap;
   }
-  .progress-container {
+  .current-schedule-container {
     width: 100%;
+    justify-content: center;
   }
 }
