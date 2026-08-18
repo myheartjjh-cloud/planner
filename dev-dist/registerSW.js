@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/planner/dev-sw.js?dev-sw', { scope: '/planner/', type: 'classic' })
