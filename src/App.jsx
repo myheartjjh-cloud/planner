@@ -8,43 +8,59 @@ import TodoList from './components/TodoList';
 import RoutineTracker from './components/RoutineTracker';
 import BatchRegisterModal from './components/BatchRegisterModal';
 import AcademyList from './components/AcademyList';
-import { fetchScheduleData } from './utils/googleSheets';
+import { fetchScheduleData, syncScheduleData } from './utils/googleSheets';
 import { getKoreanHoliday } from './utils/holidays';
+
+const decimalToTimeString = (decimal) => {
+  const hours = Math.floor(decimal);
+  const minutes = Math.round((decimal - hours) * 60);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+const buildAcademiesFromEvents = (evs) => {
+  const academyMap = new Map();
+  evs.forEach(ev => {
+    if (!ev.academyId) return;
+    if (!academyMap.has(ev.academyId)) {
+      academyMap.set(ev.academyId, {
+        id: ev.academyId,
+        title: ev.title,
+        color: ev.color,
+        startDate: ev.date || '',
+        endDate: ev.date || '',
+        days: ev.day !== undefined && ev.day !== "" ? [ev.day] : [],
+        start: decimalToTimeString(ev.start),
+        end: decimalToTimeString(ev.end)
+      });
+    } else {
+      const acc = academyMap.get(ev.academyId);
+      if (ev.date && (!acc.startDate || ev.date < acc.startDate)) acc.startDate = ev.date;
+      if (ev.date && (!acc.endDate || ev.date > acc.endDate)) acc.endDate = ev.date;
+      if (ev.day !== undefined && ev.day !== "" && !acc.days.includes(ev.day)) acc.days.push(ev.day);
+    }
+  });
+  return Array.from(academyMap.values());
+};
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('weekly'); // 'daily' | 'weekly'
   const [events, setEvents] = useState([]);
-  const [localEvents, setLocalEvents] = useState([]);
   const [academies, setAcademies] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAcademy, setEditingAcademy] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load local data
-    const savedAcademies = JSON.parse(localStorage.getItem('local_academies') || '[]');
-    const savedEvents = JSON.parse(localStorage.getItem('local_events') || '[]');
-    
-    setAcademies(savedAcademies);
-    setLocalEvents(savedEvents);
-
-    // Load from Google Sheets (or Mock)
     fetchScheduleData().then(sheetData => {
       setEvents(sheetData);
+      setAcademies(buildAcademiesFromEvents(sheetData));
       setIsLoading(false);
     }).catch(err => {
       console.error(err);
       setIsLoading(false);
     });
   }, []);
-
-  const saveToLocal = (newAcademies, newLocalEvents) => {
-    localStorage.setItem('local_academies', JSON.stringify(newAcademies));
-    localStorage.setItem('local_events', JSON.stringify(newLocalEvents));
-    setAcademies(newAcademies);
-    setLocalEvents(newLocalEvents);
-  };
 
   const handlePrev = () => {
     setCurrentDate(subDays(currentDate, view === 'weekly' ? 7 : 1));
@@ -65,9 +81,7 @@ function App() {
     while (isBefore(currentDateObj, end) || isEqual(currentDateObj, end)) {
       const dayOfWeek = currentDateObj.getDay();
       
-      // Check if this day of week is selected
       if (academyData.days.includes(dayOfWeek)) {
-        // Exclude holidays
         if (!getKoreanHoliday(currentDateObj)) {
           const startParts = academyData.start.split(':');
           const endParts = academyData.end.split(':');
@@ -75,6 +89,7 @@ function App() {
             id: Math.random() + Date.now(),
             academyId: academyId,
             date: format(currentDateObj, 'yyyy-MM-dd'),
+            day: dayOfWeek,
             start: parseInt(startParts[0]) + parseInt(startParts[1])/60,
             end: parseInt(endParts[0]) + parseInt(endParts[1])/60,
             title: academyData.title,
@@ -87,44 +102,27 @@ function App() {
     }
 
     if (editingAcademy) {
-      const updatedAcademies = academies.map(a => a.id === academyId ? {
-        ...a,
-        title: academyData.title,
-        startDate: academyData.startDate,
-        endDate: academyData.endDate,
-        days: academyData.days,
-        start: academyData.start,
-        end: academyData.end,
-        color: academyData.color
-      } : a);
-      const updatedLocalEvents = [...localEvents.filter(e => e.academyId !== academyId), ...newEvents];
-      
-      saveToLocal(updatedAcademies, updatedLocalEvents);
+      const updatedEvents = [...events.filter(e => e.academyId !== academyId), ...newEvents];
+      setEvents(updatedEvents);
+      setAcademies(buildAcademiesFromEvents(updatedEvents));
+      syncScheduleData('edit', { events: newEvents });
       setEditingAcademy(null);
     } else {
-      const newAcademies = [...academies, { 
-        id: academyId, 
-        title: academyData.title, 
-        startDate: academyData.startDate, 
-        endDate: academyData.endDate,
-        days: academyData.days,
-        start: academyData.start,
-        end: academyData.end,
-        color: academyData.color
-      }];
-      const updatedLocalEvents = [...localEvents, ...newEvents];
-      saveToLocal(newAcademies, updatedLocalEvents);
+      const updatedEvents = [...events, ...newEvents];
+      setEvents(updatedEvents);
+      setAcademies(buildAcademiesFromEvents(updatedEvents));
+      syncScheduleData('add', { events: newEvents });
     }
   };
 
   const handleDeleteAcademy = (academyId) => {
-    saveToLocal(
-      academies.filter(a => a.id !== academyId),
-      localEvents.filter(e => e.academyId !== academyId)
-    );
+    const updatedEvents = events.filter(e => e.academyId !== academyId);
+    setEvents(updatedEvents);
+    setAcademies(buildAcademiesFromEvents(updatedEvents));
+    syncScheduleData('delete', { academyId: academyId });
   };
 
-  const allEvents = [...events, ...localEvents];
+  const allEvents = [...events];
 
   const handleEditAcademy = (academy) => {
     setEditingAcademy(academy);
