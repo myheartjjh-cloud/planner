@@ -32,6 +32,8 @@
 .timeline-row {
   display: flex;
   height: 60px; /* 1 hour = 60px */
+  min-height: 60px;
+  flex-shrink: 0;
 }
 
 .time-label {
