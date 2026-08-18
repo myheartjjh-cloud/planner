@@ -10,6 +10,12 @@ const PREDEFINED_COLORS = [
   '#f43f5e', // Rose
   '#0ea5e9', // Sky
   '#f59e0b', // Amber
+  '#8b5cf6', // Violet
+  '#14b8a6', // Teal
+  '#f97316', // Orange
+  '#ec4899', // Pink
+  '#64748b', // Slate
+  '#84cc16'  // Lime
 ];
 
 const BatchRegisterModal = ({ isOpen, onClose, onRegister, editData }) => {

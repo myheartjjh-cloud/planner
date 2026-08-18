@@ -15,21 +15,36 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState('weekly'); // 'daily' | 'weekly'
   const [events, setEvents] = useState([]);
+  const [localEvents, setLocalEvents] = useState([]);
   const [academies, setAcademies] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAcademy, setEditingAcademy] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Load local data
+    const savedAcademies = JSON.parse(localStorage.getItem('local_academies') || '[]');
+    const savedEvents = JSON.parse(localStorage.getItem('local_events') || '[]');
+    
+    setAcademies(savedAcademies);
+    setLocalEvents(savedEvents);
+
     // Load from Google Sheets (or Mock)
-    fetchScheduleData().then(data => {
-      setEvents(data);
+    fetchScheduleData().then(sheetData => {
+      setEvents(sheetData);
       setIsLoading(false);
     }).catch(err => {
       console.error(err);
       setIsLoading(false);
     });
   }, []);
+
+  const saveToLocal = (newAcademies, newLocalEvents) => {
+    localStorage.setItem('local_academies', JSON.stringify(newAcademies));
+    localStorage.setItem('local_events', JSON.stringify(newLocalEvents));
+    setAcademies(newAcademies);
+    setLocalEvents(newLocalEvents);
+  };
 
   const handlePrev = () => {
     setCurrentDate(subDays(currentDate, view === 'weekly' ? 7 : 1));
@@ -72,7 +87,7 @@ function App() {
     }
 
     if (editingAcademy) {
-      setAcademies(academies.map(a => a.id === academyId ? {
+      const updatedAcademies = academies.map(a => a.id === academyId ? {
         ...a,
         title: academyData.title,
         startDate: academyData.startDate,
@@ -81,11 +96,13 @@ function App() {
         start: academyData.start,
         end: academyData.end,
         color: academyData.color
-      } : a));
-      setEvents([...events.filter(e => e.academyId !== academyId), ...newEvents]);
+      } : a);
+      const updatedLocalEvents = [...localEvents.filter(e => e.academyId !== academyId), ...newEvents];
+      
+      saveToLocal(updatedAcademies, updatedLocalEvents);
       setEditingAcademy(null);
     } else {
-      setAcademies([...academies, { 
+      const newAcademies = [...academies, { 
         id: academyId, 
         title: academyData.title, 
         startDate: academyData.startDate, 
@@ -94,15 +111,20 @@ function App() {
         start: academyData.start,
         end: academyData.end,
         color: academyData.color
-      }]);
-      setEvents([...events, ...newEvents]);
+      }];
+      const updatedLocalEvents = [...localEvents, ...newEvents];
+      saveToLocal(newAcademies, updatedLocalEvents);
     }
   };
 
   const handleDeleteAcademy = (academyId) => {
-    setAcademies(academies.filter(a => a.id !== academyId));
-    setEvents(events.filter(e => e.academyId !== academyId));
+    saveToLocal(
+      academies.filter(a => a.id !== academyId),
+      localEvents.filter(e => e.academyId !== academyId)
+    );
   };
+
+  const allEvents = [...events, ...localEvents];
 
   const handleEditAcademy = (academy) => {
     setEditingAcademy(academy);
@@ -128,9 +150,9 @@ function App() {
       ) : (
         <div className={`main-content ${view === 'weekly' ? 'weekly-layout' : ''}`}>
           {view === 'daily' ? (
-            <Timeline events={events} currentDate={currentDate} />
+            <Timeline events={allEvents} currentDate={currentDate} />
           ) : (
-            <WeeklyTimeline events={events} currentDate={currentDate} />
+            <WeeklyTimeline events={allEvents} currentDate={currentDate} />
           )}
           
           <div className="sidebar">
