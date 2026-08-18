@@ -13,7 +13,7 @@ import { getKoreanHoliday } from './utils/holidays';
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('daily'); // 'daily' | 'weekly'
+  const [view, setView] = useState('weekly'); // 'daily' | 'weekly'
   const [events, setEvents] = useState([]);
   const [academies, setAcademies] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
