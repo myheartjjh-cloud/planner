@@ -18,10 +18,51 @@ const Header = ({ view, setView, currentDate, events, onPrev, onNext, onOpenModa
 
   const [now, setNow] = useState(new Date());
 
+  // Request Notification permission
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(timer);
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
   }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const currentTime = new Date();
+      setNow(currentTime);
+
+      // Check alarms for todaysEvents
+      const currentHourDecimal = currentTime.getHours() + currentTime.getMinutes() / 60;
+      const todayStr = format(currentTime, 'yyyy-MM-dd');
+      const todays = (events || []).filter(e => {
+        if (e.date) return e.date === todayStr;
+        return e.day === currentTime.getDay();
+      });
+
+      todays.forEach(event => {
+        const minutesToStart = Math.round((event.start - currentHourDecimal) * 60);
+        const minutesToEnd = Math.round((event.end - currentHourDecimal) * 60);
+
+        if (minutesToStart === 10) {
+          const msg = `[${event.title}] 시작 10분 전입니다.`;
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("일정 알림", { body: msg });
+          } else {
+            alert(msg);
+          }
+        }
+
+        if (minutesToEnd === 10) {
+          const msg = `[${event.title}] 종료 10분 전입니다.`;
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("일정 알림", { body: msg });
+          } else {
+            alert(msg);
+          }
+        }
+      });
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [events]);
 
   const todayStr = format(now, 'yyyy-MM-dd');
   const currentHourDecimal = now.getHours() + now.getMinutes() / 60;
@@ -87,19 +128,21 @@ const Header = ({ view, setView, currentDate, events, onPrev, onNext, onOpenModa
                 <span className="schedule-time">({decimalToTime(currentEvent.start)} - {decimalToTime(currentEvent.end)})</span>
               </span>
             </div>
-          ) : nextEvent ? (
-            <div className="current-schedule next">
-              <Clock size={14} color="var(--text-secondary)" />
+          ) : null}
+
+          {nextEvent ? (
+            <div className="current-schedule next" style={{ opacity: currentEvent ? 0.7 : 1, fontSize: currentEvent ? '0.8rem' : '0.875rem' }}>
+              <Clock size={currentEvent ? 12 : 14} color="var(--text-secondary)" />
               <span className="schedule-text">
                 다음: <strong>{nextEvent.title}</strong> 
                 <span className="schedule-time">({decimalToTime(nextEvent.start)} - {decimalToTime(nextEvent.end)})</span>
               </span>
             </div>
-          ) : (
+          ) : (!currentEvent && (
             <div className="current-schedule empty">
               <span className="schedule-text">오늘 남은 일정이 없습니다 🎉</span>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </header>

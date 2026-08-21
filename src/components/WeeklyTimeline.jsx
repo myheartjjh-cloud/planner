@@ -73,6 +73,12 @@ const WeeklyTimeline = ({ events, currentDate }) => {
                   // Skip if outside view
                   if (event.start < 8 || event.start > 22) return null;
 
+                  const decimalToTime = (decimal) => {
+                    const h = Math.floor(decimal);
+                    const m = Math.round((decimal - h) * 60);
+                    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                  };
+
                   return (
                     <div 
                       key={event.id}
@@ -81,8 +87,11 @@ const WeeklyTimeline = ({ events, currentDate }) => {
                         top: `${top}px`,
                         height: `${height}px`,
                         backgroundColor: `color-mix(in srgb, ${event.color} 20%, transparent)`,
-                        borderLeftColor: event.color
+                        borderLeftColor: event.color,
+                        cursor: 'pointer'
                       }}
+                      onClick={() => alert(`[${event.title}]\n시간: ${decimalToTime(event.start)} ~ ${decimalToTime(event.end)}`)}
+                      title={`${event.title} (${decimalToTime(event.start)} - ${decimalToTime(event.end)})`}
                     >
                       <div className="weekly-event-title">{event.title}</div>
                     </div>

@@ -120,9 +120,11 @@
 .current-schedule-container {
   min-width: 280px;
   padding: 8px 16px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .current-schedule {
