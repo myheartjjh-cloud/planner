@@ -17,6 +17,7 @@ const Header = ({ view, setView, currentDate, events, onPrev, onNext, onOpenModa
   const holiday = getKoreanHoliday(currentDate);
 
   const [now, setNow] = useState(new Date());
+  const notifiedEventsRef = React.useRef(new Set());
 
   // Request Notification permission
   useEffect(() => {
@@ -42,22 +43,28 @@ const Header = ({ view, setView, currentDate, events, onPrev, onNext, onOpenModa
         const minutesToStart = Math.round((event.start - currentHourDecimal) * 60);
         const minutesToEnd = Math.round((event.end - currentHourDecimal) * 60);
 
-        if (minutesToStart === 10) {
-          const msg = `[${event.title}] 시작 10분 전입니다.`;
+        const sendNotification = (msg) => {
           if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("일정 알림", { body: msg });
+            if (navigator.serviceWorker) {
+              navigator.serviceWorker.ready.then(reg => reg.showNotification("일정 알림", { body: msg }));
+            } else {
+              new Notification("일정 알림", { body: msg });
+            }
           } else {
             alert(msg);
           }
+        };
+
+        const startKey = `${event.id}-start-${todayStr}`;
+        if (minutesToStart <= 10 && minutesToStart >= 0 && !notifiedEventsRef.current.has(startKey)) {
+          notifiedEventsRef.current.add(startKey);
+          sendNotification(`[${event.title}] 시작 ${minutesToStart}분 전입니다.`);
         }
 
-        if (minutesToEnd === 10) {
-          const msg = `[${event.title}] 종료 10분 전입니다.`;
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("일정 알림", { body: msg });
-          } else {
-            alert(msg);
-          }
+        const endKey = `${event.id}-end-${todayStr}`;
+        if (minutesToEnd <= 10 && minutesToEnd >= 0 && !notifiedEventsRef.current.has(endKey)) {
+          notifiedEventsRef.current.add(endKey);
+          sendNotification(`[${event.title}] 종료 ${minutesToEnd}분 전입니다.`);
         }
       });
     }, 60000);
