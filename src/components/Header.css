@@ -118,28 +118,13 @@
 }
 
 .current-schedule-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   min-width: 280px;
-  padding: 12px 20px;
-  border-radius: var(--radius-lg);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.current-schedule-container:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  gap: 4px;
 }
 
 .current-schedule {
@@ -187,9 +172,7 @@
     flex-wrap: wrap;
   }
   .current-schedule-container {
-    bottom: 16px;
-    right: 16px;
-    min-width: 240px;
-    padding: 10px 16px;
+    width: 100%;
+    justify-content: center;
   }
 }
